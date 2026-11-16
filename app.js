@@ -117,6 +117,7 @@ if(page==='sales'&&data.sales.length){
   const choices=[['newest','Newest first'],['oldest','Oldest first'],['profit','Highest $ profit'],['profit-percent','Highest profit %'],['sale-value','Highest sale value'],['product','Product name A–Z']];
   panel.insertAdjacentHTML('beforebegin','<div class="sales-sort"><label for="salesSort">Sort sales by</label><select id="salesSort">'+choices.map(([value,label])=>'<option value="'+value+'" '+(saleSort===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>');
   const original=data.sales.slice().reverse(),rows=[...panel.querySelectorAll(':scope > .item')];
+  original.forEach((sale,index)=>{const p=product(sale.productId),src=photoSrc(p),row=rows[index];if(!src||!row)return;const swatches=row.querySelector('.sale-swatches');if(swatches)swatches.outerHTML='<button type="button" class="sale-photo-thumb" aria-label="View photo of '+esc(p.name)+'" data-act="preview-photo:'+esc(p.id)+'"><img src="'+src+'" alt="'+esc(p.name)+'"></button>'});
   original.forEach((sale,index)=>{if(sale.quoteId){const action=rows[index]?.querySelector('[data-act^="edit-sale:"]');if(action){action.dataset.act='quote-view:'+sale.quoteId;action.textContent='Quote'}}});
   const byId=new Map(original.map((sale,index)=>[sale.id,rows[index]]));
   for(const sale of sortedSales()){const row=byId.get(sale.id);if(row)panel.append(row)}
