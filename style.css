@@ -41,3 +41,34 @@
   border: 1px solid rgba(42, 53, 49, .28);
   box-shadow: 0 0 0 1px rgba(42, 53, 49, .08);
 }
+
+/* Daily navigation and compact summaries */
+.nav button { width: 25%; font-size: 12px; }
+.header { margin-bottom: 22px; }
+.settings-trigger { min-width: 44px; min-height: 44px; font-size: 20px; }
+.section-toolbar, .shortcut-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.section-switch { display: inline-flex; gap: 3px; background: #eaece8; border-radius: 12px; padding: 3px; margin-bottom: 16px; }
+.section-toolbar .section-switch { margin-bottom: 0; }
+.section-switch button { background: transparent; border: 0; border-radius: 9px; padding: 9px 12px; color: #414a45; font-size: 13px; font-weight: 700; }
+.section-switch button[aria-current] { background: #fff; color: #244dcc; box-shadow: 0 1px 4px #0001; }
+.home-totals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
+.home-totals small, .home-totals strong { display: block; }
+.home-totals small { color: #56645e; margin-bottom: 6px; }
+.home-totals strong { font-size: clamp(19px,5vw,32px); overflow-wrap: anywhere; }
+.compact-goal progress { width: 100%; height: 9px; accent-color: #2755e7; margin-top: 8px; }
+.compact-goal .row { gap: 10px; }
+.compact-goal .row span { font-size: 12px; text-align: right; }
+.home-next { padding-top: 10px; color: #52605a; font-size: 14px; }
+.ledger-insights > summary, .stock-summary > summary { margin-bottom: 10px; }
+.queue-section h3 { margin-bottom: 10px; }
+.queue-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.queue-main { min-width: 0; flex: 1 1 155px; overflow-wrap: anywhere; }
+.queue-actions { display: flex; align-items: center; margin: 0 0 0 auto; }
+.queue-menu { position: relative; }
+.queue-menu summary { list-style: none; cursor: pointer; border-radius: 9px; padding: 5px 10px; background: #f2f4f1; font-size: 19px; }
+.queue-menu > div { position: absolute; z-index: 2; right: 0; display: grid; gap: 4px; background: white; padding: 6px; border: 1px solid #dde2dd; border-radius: 12px; min-width: 105px; box-shadow: 0 5px 20px #0002; }
+.completed-queue .queue-item { margin: 0 8px; }
+.product-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.product-buttons > .btn:only-child { width: 100%; }
+.settings-group > summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+.settings-group > div { margin-top: 8px; }
