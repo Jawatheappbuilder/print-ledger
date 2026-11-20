@@ -84,10 +84,12 @@
 .daily-revenue-summary strong { font-size: clamp(28px, 7vw, 35px); letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
 .daily-revenue-summary span { color: #87928c; font-size: 12px; }
 .daily-revenue-scroll { overflow-x: auto; scrollbar-width: thin; }
-.daily-revenue-bars { height: 137px; display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); align-items: end; gap: 10px; }
-.daily-revenue-bars.monthly { min-width: 570px; grid-template-columns: repeat(30,minmax(0,1fr)); gap: 6px; }
-.daily-revenue-day { display: flex; flex-direction: column; align-items: center; min-width: 0; gap: 7px; }
+.daily-revenue-bars { height: 167px; display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); align-items: end; gap: 9px; }
+.daily-revenue-bars.monthly { min-width: 1050px; grid-template-columns: repeat(30,minmax(0,1fr)); gap: 5px; }
+.daily-revenue-day { display: flex; flex-direction: column; align-items: center; min-width: 0; gap: 4px; }
+.daily-revenue-value { font-size: clamp(10px,2.7vw,12px); font-weight: 750; letter-spacing: -.035em; color: #3c4b49; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .daily-revenue-track { width: 100%; height: 114px; display: flex; align-items: flex-end; border-bottom: 1px solid #e6ebe6; }
 .daily-revenue-bar { width: 100%; max-width: 40px; margin: 0 auto; background: linear-gradient(180deg,#4b77ee,#2855db); border-radius: 7px 7px 3px 3px; }
-.daily-revenue-day span { font-size: 10px; font-variant-numeric: tabular-nums; color: #8b948e; }
+.daily-revenue-weekday { font-size: 12px; font-weight: 750; color: #59665f; }
+.daily-revenue-date { font-size: 9px; color: #9aa49c; font-variant-numeric: tabular-nums; }
 .daily-revenue-foot { display: flex; justify-content: space-between; color: #87928c; font-size: 11px; margin-top: 11px; }
