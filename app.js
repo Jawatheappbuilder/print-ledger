@@ -5,7 +5,7 @@ if(!Array.isArray(data.purchases))data.purchases=[];
 if(!Array.isArray(data.quotes))data.quotes=[];
 if(!Array.isArray(data.stockItems))data.stockItems=[];
 if(!Array.isArray(data.queue))data.queue=[];
-let page='home',modal=null, editId=null,saleSort='newest',photoDraft='',photoBusy=false,stockDraft=null,stockQuantity=1,selectedSaleId=null,queueMode='custom';
+let page='home',modal=null, editId=null,saleSort='newest',salesChartDays=7,photoDraft='',photoBusy=false,stockDraft=null,stockQuantity=1,selectedSaleId=null,queueMode='custom';
 const $=s=>document.querySelector(s);
 const id=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 const n=v=>Math.max(0,Number(v)||0),money=v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(Number(v)||0);
@@ -60,6 +60,14 @@ function adjustRolls(sid,change){const s=spool(sid);if(!s)return;const prices=[.
 const filamentUsedInSales=()=>data.sales.reduce((sum,s)=>sum+n(s.materialCost),0);
 const saleRevenue=s=>n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage);
 const saleProfit=s=>saleRevenue(s)-n(s.shipping)-n(s.fees)-n(s.cogs);
+function dailyRevenueChart(){
+ const end=today(),start=new Date(end+'T12:00:00Z'),days=[];
+ const amounts=new Map();
+ for(const s of data.sales){if(/^\d{4}-\d{2}-\d{2}$/.test(s.date||''))amounts.set(s.date,(amounts.get(s.date)||0)+saleRevenue(s))}
+ for(let i=salesChartDays-1;i>=0;i--){const date=new Date(start);date.setUTCDate(start.getUTCDate()-i);const key=date.toISOString().slice(0,10);days.push({key,value:amounts.get(key)||0,date})}
+ const max=Math.max(1,...days.map(d=>d.value)),total=days.reduce((sum,d)=>sum+d.value,0),active=days.filter(d=>d.value>0).length;
+ return '<section class="panel daily-revenue"><div class="daily-revenue-head"><div><span class="eyebrow">SALES OVER TIME</span><h3>Daily revenue</h3><p class="sub">Sales income before costs</p></div><div class="chart-period" aria-label="Chart period"><button type="button" data-act="chart-days:7" '+(salesChartDays===7?'aria-pressed="true"':'')+'>7 days</button><button type="button" data-act="chart-days:30" '+(salesChartDays===30?'aria-pressed="true"':'')+'>30 days</button></div></div><div class="daily-revenue-summary"><strong>'+money(total)+'</strong><span>'+active+' day'+(active===1?'':'s')+' with sales</span></div><div class="daily-revenue-scroll"><div class="daily-revenue-bars '+(salesChartDays===30?'monthly':'')+'" role="img" aria-label="Daily sales revenue over the past '+salesChartDays+' days">'+days.map(d=>{const label=d.date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'}),height=d.value>0?Math.max(5,d.value/max*100):0;return '<div class="daily-revenue-day" title="'+esc(label+': '+money(d.value))+'"><div class="daily-revenue-track"><div class="daily-revenue-bar" style="height:'+height+'%"></div></div><span>'+d.date.getUTCDate()+'</span></div>'}).join('')+'</div></div><div class="daily-revenue-foot"><span>'+days[0].date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span><span>'+days.at(-1).date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span></div></section>';
+}
 const margin=(earned,taken)=>taken>0?100*earned/taken:null;
 const markup=(earned,cost)=>cost>0?100*earned/cost:null;
 const pct=v=>v===null?'—':v.toFixed(1)+'%';
@@ -108,7 +116,7 @@ if(page==='filament'){
  '<div class="roll-stepper"><button type="button" aria-label="Remove a purchased roll of '+esc(colour.colorName)+'" data-act="roll-minus:'+colour.id+'" '+(!rollCount(colour)?'disabled':'')+'>−</button><span><strong>'+rollCount(colour)+'</strong><small>bought</small></span><button type="button" aria-label="Add a purchased roll of '+esc(colour.colorName)+'" data-act="roll-plus:'+colour.id+'">+</button></div>'+button('Edit','spool:'+colour.id,'light small')+'</div>').join(''):'<div class="empty">Add colours and roll prices to calculate print costs.</div>')+'</section>'+purchasePanel();
 }
 
-if(page==='sales')body='<div class="heading"><span class="sub">'+data.sales.length+' sales · tap one to edit or delete</span>'+button('+ Record sale','sale')+'</div><section class="panel">'+(data.sales.length?data.sales.slice().reverse().map(s=>'<div class="item">'+saleSwatches(s)+'<div class="flexgrow"><div class="item-title">'+esc(product(s.productId)?.name||s.productName||'Deleted product')+' × '+n(s.quantity)+'</div><div class="item-sub">'+esc(s.colorName||spool(s.spoolId)?.colorName||'Colour')+' · '+fmtDate(s.date)+' · '+esc(s.channel||'Marketplace')+'</div></div><div class="sale-amount"><strong class="positive">+'+money(n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage)-n(s.shipping)-n(s.fees)-n(s.cogs))+'</strong><span class="item-sub">'+money(n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage))+' sale</span></div>'+button('Edit','edit-sale:'+s.id,'light small')+'</div>').join(''):'<div class="empty">No sales yet. Pick a product and tap Sold one.</div>')+'</section>';
+if(page==='sales')body=dailyRevenueChart()+'<div class="heading"><span class="sub">'+data.sales.length+' sales · tap one to edit or delete</span>'+button('+ Record sale','sale')+'</div><section class="panel">'+(data.sales.length?data.sales.slice().reverse().map(s=>'<div class="item">'+saleSwatches(s)+'<div class="flexgrow"><div class="item-title">'+esc(product(s.productId)?.name||s.productName||'Deleted product')+' × '+n(s.quantity)+'</div><div class="item-sub">'+esc(s.colorName||spool(s.spoolId)?.colorName||'Colour')+' · '+fmtDate(s.date)+' · '+esc(s.channel||'Marketplace')+'</div></div><div class="sale-amount"><strong class="positive">+'+money(n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage)-n(s.shipping)-n(s.fees)-n(s.cogs))+'</strong><span class="item-sub">'+money(n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage))+' sale</span></div>'+button('Edit','edit-sale:'+s.id,'light small')+'</div>').join(''):'<div class="empty">No sales yet. Pick a product and tap Sold one.</div>')+'</section>';
 if(page==='product-sales'){
  const selected=data.sales.find(s=>s.id===selectedSaleId),p=product(selected?.productId),name=p?.name||selected?.productName||'Product';
  const sales=selected?data.sales.filter(s=>selected.productId?s.productId===selected.productId:!s.productId&&s.productName===selected.productName).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))):[];
@@ -179,7 +187,7 @@ if(page==='products'){
  });
 }
 if(page==='sales'&&data.sales.length){
-  const panel=document.querySelector('.shell > .panel');
+  const panel=document.querySelector('.shell > .panel:not(.daily-revenue)');
   const choices=[['newest','Newest first'],['oldest','Oldest first'],['profit','Highest $ profit'],['profit-percent','Highest profit %'],['sale-value','Highest sale value'],['product','Product name A–Z']];
   panel.insertAdjacentHTML('beforebegin','<div class="sales-sort"><label for="salesSort">Sort sales by</label><select id="salesSort">'+choices.map(([value,label])=>'<option value="'+value+'" '+(saleSort===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>');
   const original=data.sales.slice().reverse(),rows=[...panel.querySelectorAll(':scope > .item')];
@@ -350,5 +358,12 @@ const p=mode==='product'?product(f.productId):null,name=p?.name||String(f.name||
 const s=spool(f.spoolId),item={id:old?.id||id(),mode,productId:p?.id||null,name,quantity,spoolId:s?.id||'',colorName:s?.colorName||'',customer:String(f.customer||'').trim(),notes:String(f.notes||'').trim(),status:old?.status||'todo',created:old?.created||today()};
 if(old)data.queue=data.queue.map(x=>x.id===old.id?item:x);else data.queue.push(item);
 modal=null;editId=null;save();
+},true);
+document.addEventListener('click',e=>{
+ const button=e.target.closest('[data-act^="chart-days:"]');
+ if(!button)return;
+ const days=Number(button.dataset.act.split(':')[1]);
+ if(days!==7&&days!==30)return;
+ e.preventDefault();e.stopImmediatePropagation();salesChartDays=days;render();
 },true);
 render();
