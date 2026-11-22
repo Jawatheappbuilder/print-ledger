@@ -5,7 +5,7 @@ if(!Array.isArray(data.purchases))data.purchases=[];
 if(!Array.isArray(data.quotes))data.quotes=[];
 if(!Array.isArray(data.stockItems))data.stockItems=[];
 if(!Array.isArray(data.queue))data.queue=[];
-let page='home',modal=null, editId=null,saleSort='newest',salesChartDays=7,photoDraft='',photoBusy=false,stockDraft=null,stockQuantity=1,selectedSaleId=null,queueMode='custom';
+let page='home',modal=null, editId=null,saleSort='newest',salesChartDays=7,selectedChartDate=null,photoDraft='',photoBusy=false,stockDraft=null,stockQuantity=1,selectedSaleId=null,queueMode='custom';
 const $=s=>document.querySelector(s);
 const id=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 const n=v=>Math.max(0,Number(v)||0),money=v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(Number(v)||0);
@@ -60,13 +60,23 @@ function adjustRolls(sid,change){const s=spool(sid);if(!s)return;const prices=[.
 const filamentUsedInSales=()=>data.sales.reduce((sum,s)=>sum+n(s.materialCost),0);
 const saleRevenue=s=>n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage);
 const saleProfit=s=>saleRevenue(s)-n(s.shipping)-n(s.fees)-n(s.cogs);
+function dailySalesPreview(date){
+ if(!date)return '';
+ const sales=data.sales.filter(s=>s.date===date);
+ const total=sales.reduce((sum,s)=>sum+saleRevenue(s),0);
+ const dateLabel=new Date(date+'T12:00:00Z').toLocaleDateString('en-AU',{timeZone:'UTC',weekday:'long',day:'numeric',month:'long'});
+ return '<div class="daily-sales-preview" aria-live="polite"><div class="daily-sales-preview-head"><div><span class="eyebrow">DAY BREAKDOWN</span><h4>'+esc(dateLabel)+'</h4><span class="sub">'+sales.length+' sale'+(sales.length===1?'':'s')+'</span></div><strong>'+money(total)+'</strong></div>'+
+ (sales.length?sales.map(s=>{const p=product(s.productId),name=p?.name||s.productName||'Deleted product',src=photoSrc(p);return '<div class="daily-sales-preview-row">'+
+ (src?'<img class="daily-sales-preview-thumb" src="'+src+'" alt="">':'<div class="daily-sales-preview-thumb daily-sales-preview-placeholder" aria-hidden="true">▧</div>')+
+ '<div class="daily-sales-preview-info"><strong>'+esc(name)+'</strong><span>'+n(s.quantity)+' sold · '+esc(s.channel||'Sale')+'</span></div><strong class="daily-sales-preview-price">'+money(saleRevenue(s))+'</strong></div>'}).join(''):'<p class="daily-sales-preview-empty">No sales recorded for this day.</p>')+'</div>';
+}
 function dailyRevenueChart(){
  const end=today(),start=new Date(end+'T12:00:00Z'),days=[];
  const amounts=new Map();
  for(const s of data.sales){if(/^\d{4}-\d{2}-\d{2}$/.test(s.date||''))amounts.set(s.date,(amounts.get(s.date)||0)+saleRevenue(s))}
  for(let i=salesChartDays-1;i>=0;i--){const date=new Date(start);date.setUTCDate(start.getUTCDate()-i);const key=date.toISOString().slice(0,10);days.push({key,value:amounts.get(key)||0,date})}
  const max=Math.max(1,...days.map(d=>d.value)),total=data.sales.reduce((sum,s)=>sum+saleRevenue(s),0);
- return '<section class="panel daily-revenue"><div class="daily-revenue-head"><div><span class="eyebrow">SALES OVER TIME</span><h3>Total revenue</h3><p class="sub">All-time sales income before costs</p></div><div class="chart-period" aria-label="Chart period"><button type="button" data-act="chart-days:7" '+(salesChartDays===7?'aria-pressed="true"':'')+'>7 days</button><button type="button" data-act="chart-days:30" '+(salesChartDays===30?'aria-pressed="true"':'')+'>30 days</button></div></div><div class="daily-revenue-summary"><strong>'+money(total)+'</strong><span>Last '+salesChartDays+' days: '+money(days.reduce((sum,d)=>sum+d.value,0))+'</span></div><div class="daily-revenue-scroll"><div class="daily-revenue-bars '+(salesChartDays===30?'monthly':'')+'" role="img" aria-label="Daily sales revenue over the past '+salesChartDays+' days">'+days.map(d=>{const label=d.date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'}),height=d.value>0?Math.max(5,d.value/max*100):0,amount=d.value>=1000?'$'+(d.value/1000).toFixed(1)+'k':new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',minimumFractionDigits:d.value%1?2:0,maximumFractionDigits:2}).format(d.value),weekday=['S','M','T','W','T','F','S'][d.date.getUTCDay()];return '<div class="daily-revenue-day" title="'+esc(label+': '+money(d.value))+'" aria-label="'+esc(label+': '+money(d.value))+'"><strong class="daily-revenue-value">'+esc(amount)+'</strong><div class="daily-revenue-track"><div class="daily-revenue-bar" style="height:'+height+'%"></div></div><span class="daily-revenue-weekday">'+weekday+'</span><small class="daily-revenue-date">'+d.date.getUTCDate()+'</small></div>'}).join('')+'</div></div><div class="daily-revenue-foot"><span>'+days[0].date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span><span>'+days.at(-1).date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span></div></section>';
+ return '<section class="panel daily-revenue"><div class="daily-revenue-head"><div><span class="eyebrow">SALES OVER TIME</span><h3>Total revenue</h3><p class="sub">All-time sales income before costs</p></div><div class="chart-period" aria-label="Chart period"><button type="button" data-act="chart-days:7" '+(salesChartDays===7?'aria-pressed="true"':'')+'>7 days</button><button type="button" data-act="chart-days:30" '+(salesChartDays===30?'aria-pressed="true"':'')+'>30 days</button></div></div><div class="daily-revenue-summary"><strong>'+money(total)+'</strong><span>Last '+salesChartDays+' days: '+money(days.reduce((sum,d)=>sum+d.value,0))+'</span></div><div class="daily-revenue-scroll"><div class="daily-revenue-bars '+(salesChartDays===30?'monthly':'')+'" role="img" aria-label="Daily sales revenue over the past '+salesChartDays+' days">'+days.map(d=>{const label=d.date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'}),height=d.value>0?Math.max(5,d.value/max*100):0,amount=d.value>=1000?'$'+(d.value/1000).toFixed(1)+'k':new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',minimumFractionDigits:d.value%1?2:0,maximumFractionDigits:2}).format(d.value),weekday=['S','M','T','W','T','F','S'][d.date.getUTCDay()];return '<button type="button" class="daily-revenue-day'+(selectedChartDate===d.key?' selected':'')+'" data-chart-date="'+d.key+'" aria-pressed="'+(selectedChartDate===d.key)+'" title="'+esc(label+': '+money(d.value))+'" aria-label="Show sales for '+esc(label)+', '+money(d.value)+'"><strong class="daily-revenue-value">'+esc(amount)+'</strong><div class="daily-revenue-track"><div class="daily-revenue-bar" style="height:'+height+'%"></div></div><span class="daily-revenue-weekday">'+weekday+'</span><small class="daily-revenue-date">'+d.date.getUTCDate()+'</small></button>'}).join('')+'</div></div><div class="daily-revenue-foot"><span>'+days[0].date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span><span>'+days.at(-1).date.toLocaleDateString('en-AU',{timeZone:'UTC',day:'numeric',month:'short'})+'</span></div>'+dailySalesPreview(selectedChartDate)+'</section>';
 }
 const margin=(earned,taken)=>taken>0?100*earned/taken:null;
 const markup=(earned,cost)=>cost>0?100*earned/cost:null;
@@ -360,10 +370,17 @@ if(old)data.queue=data.queue.map(x=>x.id===old.id?item:x);else data.queue.push(i
 modal=null;editId=null;save();
 },true);
 document.addEventListener('click',e=>{
+ const day=e.target.closest('[data-chart-date]');
+ if(!day)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ selectedChartDate=selectedChartDate===day.dataset.chartDate?null:day.dataset.chartDate;
+ render();
+},true);
+document.addEventListener('click',e=>{
  const button=e.target.closest('[data-act^="chart-days:"]');
  if(!button)return;
  const days=Number(button.dataset.act.split(':')[1]);
  if(days!==7&&days!==30)return;
- e.preventDefault();e.stopImmediatePropagation();salesChartDays=days;render();
+ e.preventDefault();e.stopImmediatePropagation();salesChartDays=days;selectedChartDate=null;render();
 },true);
 render();
