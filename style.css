@@ -87,6 +87,23 @@
 .daily-revenue-bars { height: 167px; display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); align-items: end; gap: 9px; }
 .daily-revenue-bars.monthly { min-width: 1050px; grid-template-columns: repeat(30,minmax(0,1fr)); gap: 5px; }
 .daily-revenue-day { display: flex; flex-direction: column; align-items: center; min-width: 0; gap: 4px; }
+.daily-revenue-day { appearance: none; background: transparent; border: 0; padding: 0 2px 3px; border-radius: 9px; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation; }
+.daily-revenue-day:focus-visible { outline: 2px solid #2855db; outline-offset: 2px; }
+.daily-revenue-day.selected { background: #eaf0ff; }
+.daily-revenue-day.selected .daily-revenue-bar { background: linear-gradient(180deg,#214cc7,#173c9e); }
+.daily-sales-preview { margin-top: 16px; padding-top: 15px; border-top: 1px solid #e6ebe6; }
+.daily-sales-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.daily-sales-preview-head h4 { margin: 3px 0; font-size: 16px; }
+.daily-sales-preview-head > strong { font-size: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.daily-sales-preview-row { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid #f0f1ee; }
+.daily-sales-preview-thumb { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 9px; object-fit: cover; background: #f1f3f0; }
+.daily-sales-preview-placeholder { display: grid; place-items: center; color: #9aa49c; font-size: 20px; }
+.daily-sales-preview-info { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.daily-sales-preview-info strong { font-size: 13px; overflow-wrap: anywhere; }
+.daily-sales-preview-info span { font-size: 11px; color: #87928c; }
+.daily-sales-preview-price { white-space: nowrap; font-size: 13px; font-variant-numeric: tabular-nums; }
+.daily-sales-preview-empty { margin: 10px 0 2px; color: #87928c; font-size: 13px; }
+
 .daily-revenue-value { font-size: clamp(10px,2.7vw,12px); font-weight: 750; letter-spacing: -.035em; color: #3c4b49; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .daily-revenue-track { width: 100%; height: 114px; display: flex; align-items: flex-end; border-bottom: 1px solid #e6ebe6; }
 .daily-revenue-bar { width: 100%; max-width: 40px; margin: 0 auto; background: linear-gradient(180deg,#4b77ee,#2855db); border-radius: 7px 7px 3px 3px; }
