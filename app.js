@@ -109,7 +109,7 @@ const recent=data.sales.slice().sort((a,b)=>String(b.date||'').localeCompare(Str
  '<section class="panel home-totals" aria-label="All-time totals"><div><small>Estimated profit</small><strong>'+money(estimatedProfit)+'</strong></div><div><small>Sales revenue</small><strong>'+money(salesTotal)+'</strong></div></section>'+
  (data.settings.goalEnabled&&goalAmount?'<section class="panel compact-goal"><div class="row"><h3>'+esc(data.settings.goalName||'Profit goal')+'</h3><span>'+goalPct+'% of '+money(goalAmount)+'</span></div><progress max="100" value="'+goalPct+'" aria-label="Profit goal progress"></progress></section>':'')+
  '<section class="panel"><div class="row"><h3>Up next</h3><button class="text-link" data-page="queue">Open queue →</button></div>'+
- (nextPrint?'<p class="home-next">'+esc(product(nextPrint.productId)?.name||nextPrint.name)+' × '+n(nextPrint.quantity)+(nextPrint.status==='printing'?' · Printing':'')+'</p>':'<p class="home-next">Nothing waiting to print.</p>')+
+ (nextPrint?'<p class="home-next">'+esc(product(nextPrint.productId)?.name||nextPrint.name)+' × '+n(nextPrint.quantity)+(nextPrint.status==='printing'?' · Printing':'')+'</p>':'<p class="home-next">Nothing waiting to fulfil.</p>')+
  '</section><div class="shortcut-row"><button class="text-link" data-page="filament">Filament →</button></div>'+
  '<details class="section-disclosure ledger-insights"><summary>Business insights</summary>'+
 '<section class="filament-balance"><div class="row"><h3>Filament spend vs profit</h3><span class="hero-tag">All time</span></div><div class="filament-compare-row"><div><small>Estimated profit</small><strong>'+money(estimatedProfit)+'</strong></div><div><small>Filament purchased</small><strong>'+money(filamentSpend)+'</strong></div></div><div class="filament-track" aria-label="Estimated profit relative to filament purchases"><span class="filament-fill profit-fill" style="width:'+(100*Math.max(0,estimatedProfit)/comparisonMax)+'%"></span></div><div class="filament-track" aria-label="Total filament purchases"><span class="filament-fill spend-fill" style="width:'+(100*filamentSpend/comparisonMax)+'%"></span></div><div class="filament-balance-result '+(filamentCovered?'is-ahead':'is-behind')+'"><span>'+(filamentCovered?'✓ Sales have covered filament purchases':'↗ Still recovering filament purchases')+'</span><strong>'+(filamentCovered?'+':'−')+money(Math.abs(filamentGap))+'</strong></div><p class="filament-balance-note">Sales '+money(salesTotal)+' − filament bought '+money(filamentSpend)+'. Profit already deducts filament used in sold prints, so don’t subtract purchases from profit again. Unused rolls still have value; this cash check excludes other expenses.</p></section>'+
@@ -135,29 +135,30 @@ if(page==='product-sales'){
 }
 if(page==='quotes')body='<div class="heading">'+button('＋ New quote','quote')+'</div>'+quoteRows();
 if(page==='queue'){
- const statuses=[['printing','Printing'],['todo','To print'],['done','Completed']];
+ const statuses=[['active','To fulfil'],['fulfilled','Completed']];
  body='<div class="heading"><h1>Print queue</h1>'+button('＋ Add to queue','queue-new')+'</div>'+
  statuses.map(([status,label])=>{
-   const items=data.queue.filter(q=>q.status===status);
-   if(!items.length&&status!=='todo')return '';
+   const items=data.queue.filter(q=>status==='fulfilled'?q.status==='fulfilled':q.status!=='fulfilled');
+   if(!items.length&&status==='fulfilled')return '';
    const rows=items.map((q,i)=>{
      const p=product(q.productId),src=photoSrc(p),colour=spool(q.spoolId);
-     const action={todo:['Start printing','printing'],printing:['Complete','done'],done:['Requeue','todo']}[status];
+     const stages=['todo','printing','done','fulfilled'],level=Math.max(0,stages.indexOf(q.status));
+     const checks=['Printing','Printed','Posted / picked up'].map((label,i)=>'<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" style="width:18px;height:18px;accent-color:currentColor" data-queue-check="'+esc(q.id)+'" data-stage="'+(i+1)+'" '+(level>=i+1?'checked':'')+'>'+label+'</label>').join('');
      return '<article class="queue-item"><div class="queue-main">'+
       (src?'<img class="queue-thumb" src="'+src+'" alt="">':'')+
       '<div class="flexgrow"><div class="item-title">'+esc(p?.name||q.name)+' <span class="queue-qty">× '+n(q.quantity)+'</span></div>'+
       (q.customer?'<div class="item-sub">For '+esc(q.customer)+'</div>':'')+
       (q.colorName||colour?'<div class="queue-colour"><span class="queue-dot" style="background:'+esc(colour?.color||'#a7a7a7')+'"></span>'+esc(q.colorName||colour?.colorName||'')+'</div>':'')+
       (q.notes?'<p class="queue-notes">'+esc(q.notes)+'</p>':'')+'</div></div>'+
-      '<div class="queue-actions">'+button(action[0],'queue-status:'+q.id+':'+action[1],status==='done'?'light small':'small')+
+      '<div class="queue-actions" style="flex-wrap:wrap;justify-content:space-between"><div style="display:flex;flex-wrap:wrap;gap:12px">'+checks+'</div>'+
       '<details class="queue-menu"><summary aria-label="More actions for '+esc(p?.name||q.name)+'">⋯</summary><div>'+
       button('Edit','queue-edit:'+q.id,'light small')+
       (i>0?button('Move up','queue-move:'+q.id+':up','light small'):'')+
       (i<items.length-1?button('Move down','queue-move:'+q.id+':down','light small'):'')+
       button('Delete','queue-delete:'+q.id,'light small')+'</div></details></div></article>';
    }).join('');
-   if(status==='done')return '<details class="section-disclosure completed-queue"><summary>Completed · '+items.length+'</summary>'+rows+'</details>';
-   if(!items.length&&data.queue.some(q=>q.status==='printing'))return '';
+   if(status==='fulfilled')return '<details class="section-disclosure completed-queue"><summary>Completed · '+items.length+'</summary>'+rows+'</details>';
+
    return '<section class="panel queue-section"><h3>'+label+' · '+items.length+'</h3>'+(rows||'<p class="chart-empty">Nothing waiting to print.</p>')+'</section>';
  }).join('');
 }
@@ -199,14 +200,26 @@ if(page==='products'){
 if(page==='sales'&&data.sales.length){
   const panel=document.querySelector('.shell > .panel:not(.daily-revenue)');
   const choices=[['newest','Newest first'],['oldest','Oldest first'],['profit','Highest $ profit'],['profit-percent','Highest profit %'],['sale-value','Highest sale value'],['product','Product name A–Z']];
-  panel.insertAdjacentHTML('beforebegin','<div class="sales-sort"><label for="salesSort">Sort sales by</label><select id="salesSort">'+choices.map(([value,label])=>'<option value="'+value+'" '+(saleSort===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>');
+  panel.insertAdjacentHTML('beforebegin','<div class="sales-sort"><label for="salesSort">Sort within days</label><select id="salesSort">'+choices.map(([value,label])=>'<option value="'+value+'" '+(saleSort===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>');
   const original=data.sales.slice().reverse(),rows=[...panel.querySelectorAll(':scope > .item')];
   original.forEach((sale,index)=>{if(rows[index]){rows[index].dataset.saleId=sale.id;rows[index].tabIndex=0;rows[index].setAttribute('role','button');rows[index].setAttribute('aria-label','View previous sales for '+(product(sale.productId)?.name||sale.productName||'product'))}});
   original.forEach((sale,index)=>{const subtitle=rows[index]?.querySelector('.item-sub');if(subtitle)subtitle.innerHTML=saleInlineSwatches(sale)+'<span class="sale-detail-divider">·</span>'+fmtDate(sale.date)+' · '+esc(sale.channel||'Marketplace')});
   original.forEach((sale,index)=>{const p=product(sale.productId),src=photoSrc(p),row=rows[index];if(!src||!row)return;const swatches=row.querySelector('.sale-swatches');if(swatches)swatches.outerHTML='<button type="button" class="sale-photo-thumb" aria-label="View photo of '+esc(p.name)+'" data-act="preview-photo:'+esc(p.id)+'"><img src="'+src+'" alt="'+esc(p.name)+'"></button>'});
   original.forEach((sale,index)=>{if(sale.quoteId){const action=rows[index]?.querySelector('[data-act^="edit-sale:"]');if(action){action.dataset.act='quote-view:'+sale.quoteId;action.textContent='Quote'}}});
   const byId=new Map(original.map((sale,index)=>[sale.id,rows[index]]));
-  for(const sale of sortedSales()){const row=byId.get(sale.id);if(row)panel.append(row)}
+  const groups=new Map();
+  for(const sale of sortedSales()){const key=String(sale.date||'').slice(0,10);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(sale)}
+  const dates=[...groups.keys()].sort((a,b)=>saleSort==='oldest'?a.localeCompare(b):b.localeCompare(a));
+  panel.classList.add('daily-sale-groups');
+  panel.style.cssText='background:none;border:0;box-shadow:none;padding:0';
+  for(const date of dates){
+    const sales=groups.get(date),section=document.createElement('section');
+    section.className='panel';section.style.marginBottom='12px';
+    const label=date===today()?'Today · '+fmtDate(date):date?fmtDate(date):'Undated';
+    section.innerHTML='<div class="row"><h3>'+esc(label)+'</h3><span class="pill">'+sales.length+' sale'+(sales.length===1?'':'s')+'</span></div><p class="item-sub" style="margin:4px 0 10px">Revenue '+money(sales.reduce((sum,x)=>sum+saleRevenue(x),0))+' · Est. profit '+money(sales.reduce((sum,x)=>sum+saleProfit(x),0))+'</p>';
+    for(const sale of sales){const row=byId.get(sale.id);if(row)section.append(row)}
+    panel.append(section);
+  }
 }
 if(page==='quotes'){
  const historySections=[...document.querySelectorAll('.quote-section')].slice(1);
@@ -354,9 +367,9 @@ e.preventDefault();e.stopImmediatePropagation();
 if(act==='queue-new'){modal='queue-pick';editId=null}
 else if(act==='queue-custom'||act==='queue-product'){queueMode=act==='queue-product'?'product':'custom';editId=null;modal='queue-editor'}
 else if(act.startsWith('queue-edit:')){editId=act.slice(11);modal='queue-editor'}
-else if(act.startsWith('queue-status:')){const [,qid,status]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q&&['todo','printing','done'].includes(status)){q.status=status;save();return}}
+else if(act.startsWith('queue-status:')){const [,qid,status]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q&&['todo','printing','done','fulfilled'].includes(status)){q.status=status;save();return}}
 else if(act.startsWith('queue-delete:')){const qid=act.slice(13);if(!confirm('Remove this print from the queue?'))return;data.queue=data.queue.filter(x=>x.id!==qid);save();return}
-else if(act.startsWith('queue-move:')){const [,qid,direction]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q){const same=data.queue.filter(x=>x.status===q.status),i=same.indexOf(q),other=same[i+(direction==='up'?-1:1)];if(other){const a=data.queue.indexOf(q),b=data.queue.indexOf(other);[data.queue[a],data.queue[b]]=[data.queue[b],data.queue[a]];save()}return}}
+else if(act.startsWith('queue-move:')){const [,qid,direction]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q){const same=data.queue.filter(x=>(x.status==='fulfilled')===(q.status==='fulfilled')),i=same.indexOf(q),other=same[i+(direction==='up'?-1:1)];if(other){const a=data.queue.indexOf(q),b=data.queue.indexOf(other);[data.queue[a],data.queue[b]]=[data.queue[b],data.queue[a]];save()}return}}
 render();
 },true);
 document.addEventListener('submit',e=>{
@@ -384,3 +397,5 @@ document.addEventListener('click',e=>{
  e.preventDefault();e.stopImmediatePropagation();salesChartDays=days;selectedChartDate=null;render();
 },true);
 render();
+
+ document.addEventListener('change',e=>{const input=e.target;if(!input.matches('input[data-queue-check]'))return;const q=data.queue.find(x=>x.id===input.dataset.queueCheck),stage=Number(input.dataset.stage);if(!q||stage<1||stage>3)return;q.status=['todo','printing','done','fulfilled'][input.checked?stage:stage-1];save()});
