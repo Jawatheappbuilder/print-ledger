@@ -60,6 +60,7 @@ function adjustRolls(sid,change){const s=spool(sid);if(!s)return;const prices=[.
 const filamentUsedInSales=()=>data.sales.reduce((sum,s)=>sum+n(s.materialCost),0);
 const saleRevenue=s=>n(s.price)*n(s.quantity)-n(s.discount)+n(s.postage);
 const saleProfit=s=>saleRevenue(s)-n(s.shipping)-n(s.fees)-n(s.cogs);
+function queueSection(q){return q.status==='fulfilled'?'fulfilled':q.status==='done'?'ready':'active'}
 function saleAttribution(s){return [s.soldBy,s.soldOn].filter(Boolean).join(' · ')}
 function saleAttributionFields(s={}){
  const group=(name,label,choices,value)=>'<fieldset style="border:0;padding:0;margin:0;min-width:0"><legend style="font-size:12px;font-weight:600;margin-bottom:6px">'+label+'</legend><div style="display:flex;flex-wrap:wrap;gap:7px">'+choices.map(choice=>'<label style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(128,128,128,.35);border-radius:9px;padding:8px 10px;font-size:13px;cursor:pointer"><input type="radio" name="'+name+'" value="'+esc(choice)+'" style="width:16px;height:16px;margin:0;accent-color:#398568" '+(value===choice?'checked':'')+'>'+esc(choice)+'</label>').join('')+'</div></fieldset>';
@@ -141,11 +142,11 @@ if(page==='product-sales'){
 }
 if(page==='quotes')body='<div class="heading">'+button('＋ New quote','quote')+'</div>'+quoteRows();
 if(page==='queue'){
- const statuses=[['active','To fulfil'],['fulfilled','Completed']];
+ const statuses=[['active','To print'],['ready','Ready for pickup / postage'],['fulfilled','Completed']];
  body='<div class="heading"><h1>Print queue</h1>'+button('＋ Add to queue','queue-new')+'</div>'+
  statuses.map(([status,label])=>{
-   const items=data.queue.filter(q=>status==='fulfilled'?q.status==='fulfilled':q.status!=='fulfilled');
-   if(!items.length&&status==='fulfilled')return '';
+   const items=data.queue.filter(q=>queueSection(q)===status);
+   if(!items.length&&status!=='active')return '';
    const rows=items.map((q,i)=>{
      const p=product(q.productId),src=photoSrc(p),colour=spool(q.spoolId);
      const stages=['todo','printing','done','fulfilled'],level=Math.max(0,stages.indexOf(q.status));
@@ -165,7 +166,7 @@ if(page==='queue'){
    }).join('');
    if(status==='fulfilled')return '<details class="section-disclosure completed-queue"><summary>Completed · '+items.length+'</summary>'+rows+'</details>';
 
-   return '<section class="panel queue-section"><h3>'+label+' · '+items.length+'</h3>'+(rows||'<p class="chart-empty">Nothing waiting to print.</p>')+'</section>';
+   return '<section class="panel queue-section"><div class="row"><h3>'+label+'</h3><span class="pill"'+(status==='ready'?' style="background:#dcefe3;color:#17603a"':'')+'>'+items.length+'</span></div>'+(rows||'<p class="chart-empty">Nothing waiting to print.</p>')+'</section>';
  }).join('');
 }
 if(page==='stock'){
@@ -380,7 +381,7 @@ else if(act==='queue-custom'||act==='queue-product'){queueMode=act==='queue-prod
 else if(act.startsWith('queue-edit:')){editId=act.slice(11);modal='queue-editor'}
 else if(act.startsWith('queue-status:')){const [,qid,status]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q&&['todo','printing','done','fulfilled'].includes(status)){q.status=status;save();return}}
 else if(act.startsWith('queue-delete:')){const qid=act.slice(13);if(!confirm('Remove this print from the queue?'))return;data.queue=data.queue.filter(x=>x.id!==qid);save();return}
-else if(act.startsWith('queue-move:')){const [,qid,direction]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q){const same=data.queue.filter(x=>(x.status==='fulfilled')===(q.status==='fulfilled')),i=same.indexOf(q),other=same[i+(direction==='up'?-1:1)];if(other){const a=data.queue.indexOf(q),b=data.queue.indexOf(other);[data.queue[a],data.queue[b]]=[data.queue[b],data.queue[a]];save()}return}}
+else if(act.startsWith('queue-move:')){const [,qid,direction]=act.split(':'),q=data.queue.find(x=>x.id===qid);if(q){const same=data.queue.filter(x=>queueSection(x)===queueSection(q)),i=same.indexOf(q),other=same[i+(direction==='up'?-1:1)];if(other){const a=data.queue.indexOf(q),b=data.queue.indexOf(other);[data.queue[a],data.queue[b]]=[data.queue[b],data.queue[a]];save()}return}}
 render();
 },true);
 document.addEventListener('submit',e=>{
